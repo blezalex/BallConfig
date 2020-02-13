@@ -7,8 +7,8 @@
 >
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="ride.wheelboardapp"
-            android:targetClass="ride.wheelboardapp.ListBluetooth" />
+            android:targetPackage="ride.ballconfig"
+            android:targetClass="ride.ballconfig.ListBluetooth" />
         <!-- If your shortcut is associated with multiple intents, include them
              here. The last intent in the list determines what the user sees when
              they launch this shortcut. -->

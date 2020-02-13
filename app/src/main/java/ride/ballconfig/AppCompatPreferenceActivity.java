@@ -1,4 +1,4 @@
-package ride.wheelboardapp;
+package ride.ballconfig;
 
 import android.content.res.Configuration;
 import android.os.Bundle;

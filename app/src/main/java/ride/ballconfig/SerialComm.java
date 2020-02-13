@@ -1,4 +1,4 @@
-package ride.wheelboardapp;
+package ride.ballconfig;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 

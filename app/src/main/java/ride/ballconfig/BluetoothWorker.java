@@ -1,4 +1,4 @@
-package ride.wheelboardapp;
+package ride.ballconfig;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;

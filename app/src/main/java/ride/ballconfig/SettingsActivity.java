@@ -1,4 +1,4 @@
-package ride.wheelboardapp;
+package ride.ballconfig;
 
 import android.annotation.TargetApi;
 import android.content.Intent;
