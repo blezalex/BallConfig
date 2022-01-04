@@ -62,7 +62,6 @@ public class SerialComm {
                 break;
             case Protocol.ReplyId.STATS_VALUE:
                 handler.OnStats(Protocol.Stats.parseFrom(payload));
-                ;
                 break;
             case Protocol.ReplyId.DEBUG_BUFFER_VALUE:
                 handler.OnDebug(payload);
@@ -74,7 +73,7 @@ public class SerialComm {
 
     long lastMsgTime = 0;
     int writePos = 0;
-    byte[] msgBuffer = new byte[1024];
+    byte[] msgBuffer = new byte[1024*4];
 
     static final int READ_TIMEOUT_MS = 1000;
 
@@ -92,28 +91,32 @@ public class SerialComm {
                 writePos = 0;
 
             writePos += bytes_read;
-            while (writePos > 0) {
-                try {
-                    if (writePos > 2) {
-                        int len = toUnsignedInt(msgBuffer[1]);
-                        if (len <= writePos) {
-                            DecodeMessage(msgBuffer);
-                            int bytesToCopy = writePos - len;
-                            if (bytesToCopy > 0) {
-                                System.arraycopy(msgBuffer, len, msgBuffer, 0, bytesToCopy);
-                                writePos = bytesToCopy;
-                            } else {
-                                writePos = 0;
-                            }
-                        }
-                    }
+            while (true) {
+                // Attempt to decode accumulated so far messages.
+                if (writePos < 2) {
+                    // the length is at pos 1 so at least 2 bytes required.
                     break;
+                }
+                int len = toUnsignedInt(msgBuffer[1]);
+                if (len > writePos) {
+                    // Only a part of the message is received so far, wait for more.
+                    break;
+                }
+
+                try {
+                    DecodeMessage(msgBuffer);
+                    // Successfully decoded one message, copy the leftover
+                    int leftoverBytes = writePos - len;
+                    if (leftoverBytes > 0) {
+                        System.arraycopy(msgBuffer, len, msgBuffer, 0, leftoverBytes);
+                    }
+                    writePos = leftoverBytes;
                 } catch (Exception e) {
+                    // Failed to decode the message. Shift 1 byte and try again.
                     e.printStackTrace();
                     System.arraycopy(msgBuffer, 1, msgBuffer, 0, writePos - 1);
                     writePos--;
                 }
-
             }
         }
     }
