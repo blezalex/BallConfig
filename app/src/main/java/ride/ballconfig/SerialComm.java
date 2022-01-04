@@ -17,13 +17,15 @@ public class SerialComm {
 
     public interface ProtoHandler {
         void OnGeneric(Protocol.ReplyId reply);
+
         void OnConfig(Protocol.Config cfg);
+
         void OnStats(Protocol.Stats stats);
+
         void OnDebug(byte[] data);
     }
 
-    public SerialComm(ProtoHandler handler)
-    {
+    public SerialComm(ProtoHandler handler) {
         this.handler = handler;
     }
 
@@ -59,7 +61,8 @@ public class SerialComm {
                 handler.OnConfig(Protocol.Config.parseFrom(payload));
                 break;
             case Protocol.ReplyId.STATS_VALUE:
-                handler.OnStats(Protocol.Stats.parseFrom(payload));;
+                handler.OnStats(Protocol.Stats.parseFrom(payload));
+                ;
                 break;
             case Protocol.ReplyId.DEBUG_BUFFER_VALUE:
                 handler.OnDebug(payload);
@@ -78,34 +81,39 @@ public class SerialComm {
     public void RunReader(InputStream inputStream) throws IOException {
         int bytes_read;
         while ((bytes_read = inputStream.read(msgBuffer, writePos, msgBuffer.length - writePos)) != -1) {
-            try {
-                long time = System.currentTimeMillis();
-                if (time > lastMsgTime + READ_TIMEOUT_MS) {
-                    writePos = 0;
-                }
-                lastMsgTime = time;
 
-                if ((bytes_read + writePos) >= msgBuffer.length)
-                    writePos = 0;
+            long time = System.currentTimeMillis();
+            if (time > lastMsgTime + READ_TIMEOUT_MS) {
+                writePos = 0;
+            }
+            lastMsgTime = time;
 
-                writePos += bytes_read;
-                if (writePos > 2) {
-                    int len = toUnsignedInt(msgBuffer[1]);
-                    if (len <= writePos) {
-                        DecodeMessage(msgBuffer);
-                        int bytesToCopy = writePos - len;
-                        if (bytesToCopy > 0) {
-                            System.arraycopy(msgBuffer, len, msgBuffer, 0, bytesToCopy);
-                            writePos = bytesToCopy;
-                        }
-                        else {
-                            writePos = 0;
+            if ((bytes_read + writePos) >= msgBuffer.length)
+                writePos = 0;
+
+            writePos += bytes_read;
+            while (writePos > 0) {
+                try {
+                    if (writePos > 2) {
+                        int len = toUnsignedInt(msgBuffer[1]);
+                        if (len <= writePos) {
+                            DecodeMessage(msgBuffer);
+                            int bytesToCopy = writePos - len;
+                            if (bytesToCopy > 0) {
+                                System.arraycopy(msgBuffer, len, msgBuffer, 0, bytesToCopy);
+                                writePos = bytesToCopy;
+                            } else {
+                                writePos = 0;
+                            }
                         }
                     }
+                    break;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    System.arraycopy(msgBuffer, 1, msgBuffer, 0, writePos - 1);
+                    writePos--;
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                writePos = 0;
+
             }
         }
     }
@@ -117,6 +125,12 @@ public class SerialComm {
     public static void sendConfig(OutputStream out, Protocol.Config cfg) throws IOException {
         byte[] data = cfg.toByteArray();
         sendMsg(out, Protocol.RequestId.WRITE_CONFIG, data);
+    }
+
+    public static void setDebugStreamId(OutputStream out, int id) throws IOException {
+        byte[] data = new byte[1];
+        data[0] = (byte) id;
+        sendMsg(out, Protocol.RequestId.SET_DEBUG_STREAM_ID, data);
     }
 
     private static void sendMsg(OutputStream out, Protocol.RequestId id, byte[] data) throws IOException {

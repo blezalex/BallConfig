@@ -7,99 +7,159 @@
     android:layout_height="match_parent"
     tools:context="ride.ballconfig.MainActivity">
 
-    <Button
-        android:id="@+id/saveToFlash"
+    <TextView
+        android:id="@+id/tvDist"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        android:layout_marginTop="28dp"
-        android:text="FLASH"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:text="Distance traveled: 0"
+        android:textSize="30sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/callibrateAcc"
-        android:onClick="onClick"/>
+        app:layout_constraintTop_toBottomOf="@+id/tvBatteryV" />
+
+    <Button
+        android:id="@+id/saveToFlash"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="16dp"
+        android:onClick="onClick"
+        android:text="FLASH"
+        app:layout_constraintStart_toEndOf="@+id/saveToFile"
+        app:layout_constraintTop_toBottomOf="@+id/saveToBoard" />
 
     <Button
         android:id="@+id/changeSettings"
-        android:layout_width="wrap_content"
+        android:layout_width="100dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="34dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         android:onClick="onClick"
-        android:text="Change"
-        app:layout_constraintStart_toStartOf="parent"
+        android:text="Settings"
+        app:layout_constraintStart_toStartOf="@+id/readFromFile"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/readFromBoard"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:onClick="onClick"
+        android:text="FROM BOARD"
+        app:layout_constraintStart_toEndOf="@+id/changeSettings"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/saveToBoard"
+        android:layout_width="100dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="8dp"
+        android:onClick="onClick"
+        android:text="TO BOARD"
+        app:layout_constraintStart_toEndOf="@+id/readFromBoard"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/plot"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+
+        android:onClick="onClick"
+        android:text="PLOT"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/readFromFile" />
+
+    <Button
+        android:id="@+id/readFromFile"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+
+
+        android:layout_marginTop="16dp"
+        android:onClick="onClick"
+        android:text="FromFile"
+        app:layout_constraintStart_toStartOf="@+id/plot"
+        app:layout_constraintTop_toBottomOf="@+id/changeSettings" />
+
+    <Button
+        android:id="@+id/saveToFile"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:onClick="onClick"
+        android:text="ToFile"
+        app:layout_constraintStart_toEndOf="@+id/readFromFile"
+        app:layout_constraintTop_toBottomOf="@+id/readFromBoard" />
+
+
+    <TextView
+        android:id="@+id/stats"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="20dp"
+        android:text="Getting data.. "
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tvDist" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_begin="20dp" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/guideline2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_begin="20dp" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/guideline3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_begin="20dp" />
+
+    <TextView
+        android:id="@+id/tvSpeed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="28dp"
+        android:text="Speed: 0"
+        android:textSize="30sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/plot" />
+
+    <TextView
+        android:id="@+id/tvBatteryV"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:text="Battery: 0v"
+        android:textSize="30sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tvSpeed" />
+
+    <Button
+        android:id="@+id/passthough"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
-        android:text="Read"
-        app:layout_constraintStart_toEndOf="@+id/changeSettings"
-        app:layout_constraintTop_toTopOf="parent"
-        android:onClick="onClick"/>
+        android:text="Toggle Passthrough"
+        android:onClick="onClick"
+        app:layout_constraintStart_toEndOf="@+id/plot"
+        app:layout_constraintTop_toBottomOf="@+id/saveToFile" />
 
-    <Button
-        android:id="@+id/saveToBoard"
-        android:layout_width="wrap_content"
-        android:layout_height="48dp"
-        android:layout_marginStart="21dp"
-        android:layout_marginTop="16dp"
-        android:text="Write"
-        app:layout_constraintStart_toEndOf="@+id/readFromBoard"
-        app:layout_constraintTop_toTopOf="parent"
-        android:onClick="onClick"/>
-
-    <Button
-        android:id="@+id/callibrateAcc"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="33dp"
-        android:layout_marginTop="32dp"
-        android:text="ACC"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/changeSettings"
-        android:onClick="onClick"/>
-
-    <Button
-        android:id="@+id/readFromFile"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="17dp"
-        android:layout_marginTop="31dp"
-        android:text="FromFile"
-        app:layout_constraintStart_toEndOf="@+id/callibrateAcc"
-        app:layout_constraintTop_toBottomOf="@+id/readFromBoard"
-        android:onClick="onClick"/>
-
-    <Button
-        android:id="@+id/saveToFile"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="30dp"
-        android:text="ToFile"
-        app:layout_constraintStart_toEndOf="@+id/readFromFile"
-        app:layout_constraintTop_toBottomOf="@+id/saveToBoard"
-        android:onClick="onClick"/>
-
-
-    <Button
-        android:id="@+id/getStats"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="30dp"
-        android:text="STATS"
-        app:layout_constraintStart_toEndOf="@+id/readFromFile"
-        app:layout_constraintTop_toBottomOf="@+id/saveToFile"
-        android:onClick="onClick"/>
-
-    <com.jjoe64.graphview.GraphView
-        android:id="@+id/graph"
-        android:layout_width="match_parent"
-        android:layout_height="400dip"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/getStats" />
 </android.support.constraint.ConstraintLayout>

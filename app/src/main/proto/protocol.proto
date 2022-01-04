@@ -17,6 +17,8 @@ enum RequestId {
   CALLIBRATE_ACC = 4;
   SAVE_CONFIG = 5;
   GET_DEBUG_BUFFER = 6;
+  SET_DEBUG_STREAM_ID = 7;
+  TOGGLE_PASSTHROUGH = 8;
 }
 
 enum ReplyId {
@@ -137,6 +139,9 @@ message Config {
 
     // add current erpm to throttle input with 'speed_input_mixin' weight
     optional float speed_input_mixin = 14 [ default = 0 ];
+
+    // length of 1 electrical rotation
+    optional float erpm_to_dist_const = 15 [ default = 1 ];
   }
 
   message FloatSettings  {

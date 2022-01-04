@@ -23,10 +23,10 @@ public class BluetoothWorker {
             UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
     private Thread btRecieveThrread;
-    private Activity host;
+    private BtService host;
     SerialComm comm;
 
-    public BluetoothWorker(Activity host, SerialComm.ProtoHandler protoHandler) {
+    public BluetoothWorker(BtService host, SerialComm.ProtoHandler protoHandler) {
         this.host = host;
         comm = new SerialComm(protoHandler);
     }
@@ -42,21 +42,35 @@ public class BluetoothWorker {
         }
     }
 
-    public void sendMsg(Protocol.RequestId id) throws IOException {
-        if (outputStream != null)
-            SerialComm.sendMsg(outputStream, id);
-        else
-            showError("Not connected!");
+    public boolean sendMsg(Protocol.RequestId id) throws IOException {
+        if (outputStream == null) {
+            return false;
+
+        }
+        SerialComm.sendMsg(outputStream, id);
+        return true;
     }
 
-    public void sendConfig(Protocol.Config cfg) throws IOException {
-        if (outputStream != null)
-            SerialComm.sendConfig(outputStream, cfg);
-        else
-            showError("Not connected!");
+    public boolean sendConfig(Protocol.Config cfg) throws IOException {
+        if (outputStream == null) {
+            return false;
+        }
+
+        SerialComm.sendConfig(outputStream, cfg);
+        return true;
     }
 
-    public void setupBluetooth() {
+    public boolean setDebugStreamId(int id) throws IOException {
+        if (outputStream == null) {
+            return false;
+        }
+
+        SerialComm.setDebugStreamId(outputStream, id);
+        return true;
+    }
+
+
+    public void setupBluetooth(Activity activity) {
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter == null) {
             showError("No Bluetooth!");
@@ -64,8 +78,14 @@ public class BluetoothWorker {
         }
 
         if (!mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            host.startActivityForResult(enableBtIntent, 1);
+            if (activity != null) {
+                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                activity.startActivityForResult(enableBtIntent, 1);
+                mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            }
+            else {
+                showError("Bluetooth disabled. Please enable bluetooth.");
+            }
         }
     }
 
@@ -74,7 +94,7 @@ public class BluetoothWorker {
     }
 
     public void connectToDevice(String address) throws IOException {
-        setupBluetooth();
+        setupBluetooth(null);
         mSerialDevice = mBluetoothAdapter.getRemoteDevice(address); // TODO: congifure bt device for 115200!
         if (mSerialDevice == null) {
             showError( "No paired device");

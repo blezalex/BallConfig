@@ -26,6 +26,8 @@ import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.List;
 
 import proto.Protocol;
@@ -237,14 +239,12 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
 //            }
 
         //    final DynamicMessage.Builder m = mTmp;
-
+            NumberFormat formatter = new DecimalFormat();
+            formatter.setMaximumFractionDigits(6);
             for (final Descriptors.FieldDescriptor child : type.getFields()) {
                 EditTextPreference preference = new EditTextPreference(screen.getContext());
-             //   preference.setKey(child.getName());
                 preference.setTitle(child.getName());
-
-                String value = m.getField(child).toString();
-                preference.setSummary(m.getField(child).toString());
+                preference.setSummary(formatter.format(m.getField(child)));
                 preference.setDialogTitle("Enter " + child.getName() + " value");
                 preference.getEditText().setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED);
                 preference.setOnPreferenceChangeListener((p, newValue) -> {
@@ -259,7 +259,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
                     return true;
                 });
                 preference.setOnPreferenceClickListener(p -> {
-                    ((EditTextPreference)p).getEditText().setText(m.getField(child).toString());
+                    String value = formatter.format(m.getField(child));
+                    ((EditTextPreference)p).getEditText().setText(value);
                     return true;
                 });
                 screen.addPreference(preference);
