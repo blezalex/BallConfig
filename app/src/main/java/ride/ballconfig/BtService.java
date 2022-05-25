@@ -9,6 +9,8 @@ import android.os.IBinder;
 import android.os.Message;
 import android.support.v4.content.LocalBroadcastManager;
 
+import com.google.protobuf.DynamicMessage;
+
 import java.io.IOException;
 import java.util.Set;
 
@@ -21,6 +23,7 @@ public class BtService extends Service {
         public static final String MSG_CONFIG = "ride.ballconfig.msg_config";
         public static final String MSG_STATS = "ride.ballconfig.msg_stats";
         public static final String MSG_DEBUG_INFO = "ride.ballconfig.msg_debug_info";
+        public static final String MSG_CONFIG_DESCRIPTOR = "ride.ballconfig.msg_config_descriptor";
 
         public static final String DATA = "ride.ballconfig.msg_content_data";
     }
@@ -60,7 +63,7 @@ public class BtService extends Service {
         communicator.setDebugStreamId(id);
     }
 
-    public void sendConfig(Protocol.Config cfg) throws IOException {
+    public void sendConfig(byte[] cfg) throws IOException {
         communicator.sendConfig(cfg);
     }
 
@@ -75,10 +78,10 @@ public class BtService extends Service {
             }
 
             @Override
-            public void OnConfig(Protocol.Config cfg) {
+            public void OnConfig(byte[] cfg) {
                 Intent localIntent =
                         new Intent(Constants.MSG_CONFIG)
-                                .putExtra(Constants.DATA, cfg.toByteArray());
+                                .putExtra(Constants.DATA, cfg);
                 LocalBroadcastManager.getInstance(BtService.this).sendBroadcast(localIntent);
             }
 
@@ -94,6 +97,14 @@ public class BtService extends Service {
             public void OnDebug(byte[] data) {
                 Intent localIntent =
                         new Intent(Constants.MSG_DEBUG_INFO)
+                                .putExtra(Constants.DATA, data);
+                LocalBroadcastManager.getInstance(BtService.this).sendBroadcast(localIntent);
+            }
+
+            @Override
+            public void OnConfigDescriptor(byte[] data) {
+                Intent localIntent =
+                        new Intent(Constants.MSG_CONFIG_DESCRIPTOR)
                                 .putExtra(Constants.DATA, data);
                 LocalBroadcastManager.getInstance(BtService.this).sendBroadcast(localIntent);
             }

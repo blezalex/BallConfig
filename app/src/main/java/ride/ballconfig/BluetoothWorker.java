@@ -51,7 +51,7 @@ public class BluetoothWorker {
         return true;
     }
 
-    public boolean sendConfig(Protocol.Config cfg) throws IOException {
+    public boolean sendConfig(byte[] cfg) throws IOException {
         if (outputStream == null) {
             return false;
         }

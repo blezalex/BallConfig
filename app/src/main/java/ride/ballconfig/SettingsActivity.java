@@ -22,15 +22,12 @@ import android.text.TextUtils;
 import android.view.MenuItem;
 
 import com.google.protobuf.Descriptors;
-import com.google.protobuf.GeneratedMessageV3;
-import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.List;
-
-import proto.Protocol;
 
 public class SettingsActivity extends AppCompatPreferenceActivity {
     /**
@@ -85,54 +82,31 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
         }
     };
 
-    /**
-     * Binds a preference's summary to its value. More specifically, when the
-     * preference's value is changed, its summary (line of text below the
-     * preference title) is updated to reflect the value. The summary is also
-     * immediately updated upon calling this method. The exact display format is
-     * dependent on the type of preference.
-     *
-     * @see #sBindPreferenceSummaryToValueListener
-     */
-    private static void bindPreferenceSummaryToValue(Preference preference) {
-        // Set the listener to watch for value changes.
-        preference.setOnPreferenceChangeListener(sBindPreferenceSummaryToValueListener);
-
-        // Trigger the listener immediately with the preference's
-        // current value.
-        sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
-                PreferenceManager
-                        .getDefaultSharedPreferences(preference.getContext())
-                        .getString(preference.getKey(), ""));
-    }
-
-    public static void setDefaults(Message.Builder bldr) {
-        for (Descriptors.FieldDescriptor field: bldr.getDescriptorForType().getFields()) {
-            if (field.getType() == Descriptors.FieldDescriptor.Type.MESSAGE) {
-                setDefaults(bldr.getFieldBuilder(field));
-            }
-            else {
-                bldr.setField(field, bldr.getField(field));
-            }
-        }
-    }
+    Descriptors.Descriptor configDescriptor;
+    DynamicMessage.Builder configBuilder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        if (getIntent() == null) {
+            return;
+        }
+
+        byte[] cfg = getIntent().getByteArrayExtra("config");
+        byte[] compressedConfigDescriptor = getIntent().getByteArrayExtra("configDescriptor");
+
+        try {
+            configDescriptor = DescriptorUtils.parseConfigDescriptor(compressedConfigDescriptor);
+            configBuilder = DynamicMessage.newBuilder(configDescriptor);
+            configBuilder.mergeFrom(cfg);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         super.onCreate(savedInstanceState);
         setupActionBar();
 
-        setDefaults(configBuilder);
-        if (getIntent() != null) {
-            byte[] cfg = getIntent().getByteArrayExtra("config");
-            if (cfg != null) {
-                try {
-                    configBuilder.mergeFrom(cfg);
-                } catch (InvalidProtocolBufferException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+        DescriptorUtils.setFieldsToTheirDefaultValues(configBuilder);
     }
 
     /**
@@ -152,8 +126,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
                 & Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_XLARGE;
     }
 
-    Protocol.Config.Builder configBuilder = Protocol.Config.newBuilder();
-
     @Override
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public void onBuildHeaders(List<PreferenceActivity.Header> target) {
@@ -169,7 +141,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             header.fragment = ProtoPreferenceFragment.class.getName();
 
             Bundle args = new Bundle();
-            args.putByteArray("data", ((GeneratedMessageV3) configBuilder.getField(field)).toByteArray());
+            args.putByteArray("data", ((Message) configBuilder.getField(field)).toByteArray());
             args.putString("type", field.getMessageType().getFullName());
             args.putString("fieldName", field.getName());
             header.fragmentArguments = args;
@@ -191,8 +163,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
     }
 
 
-    static Descriptors.Descriptor findType(String name) {
-        Descriptors.FileDescriptor fd = Protocol.Config.getDescriptor().getFile();
+    static Descriptors.Descriptor findType(Descriptors.Descriptor descriptor, String name) {
+        Descriptors.FileDescriptor fd = descriptor.getFile();
         if (name.contains(".")) {
             String parent = name.substring(0, name.indexOf('.'));
             Descriptors.Descriptor type = fd.findMessageTypeByName(parent);
@@ -218,27 +190,19 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
         @Override
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
-            //addPreferencesFromResource(R.xml.pref_general);
+            SettingsActivity activity = (SettingsActivity)getActivity();
             setHasOptionsMenu(true);
 
             PreferenceScreen screen = getPreferenceManager().createPreferenceScreen(getActivity());
             setPreferenceScreen(screen);
-            Descriptors.Descriptor type = findType(getArguments().getString("type"));
+            Descriptors.Descriptor type = findType(activity.configBuilder.getDescriptorForType(), getArguments().getString("type"));
 
-            SettingsActivity activity =  (SettingsActivity)getActivity();
-            final Message.Builder m =
-                    activity.configBuilder.getFieldBuilder(
-                            activity.configBuilder.getDescriptorForType()
-                                    .findFieldByName(getArguments().getString("fieldName")));
+            String fieldName = getArguments().getString("fieldName");
+            Descriptors.FieldDescriptor field = activity.configBuilder.getDescriptorForType()
+                    .findFieldByName(fieldName);
 
-//            DynamicMessage.Builder mTmp = DynamicMessage.getDefaultInstance(type).toBuilder();
-//            try {
-//                mTmp = DynamicMessage.parseFrom(type, getArguments().getByteArray("data")).toBuilder();
-//            } catch (InvalidProtocolBufferException e) {
-//                e.printStackTrace();
-//            }
+            final Message.Builder m = ((DynamicMessage)activity.configBuilder.getField(field)).toBuilder();
 
-        //    final DynamicMessage.Builder m = mTmp;
             NumberFormat formatter = new DecimalFormat();
             formatter.setMaximumFractionDigits(6);
             for (final Descriptors.FieldDescriptor child : type.getFields()) {
@@ -248,7 +212,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
                 preference.setDialogTitle("Enter " + child.getName() + " value");
                 preference.getEditText().setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED);
                 preference.setOnPreferenceChangeListener((p, newValue) -> {
-
                     switch (child.getJavaType()) {
                         case DOUBLE: m.setField(child , Double.valueOf((String)newValue)); break;
                         case INT: m.setField(child , Integer.valueOf((String)newValue)); break;
@@ -256,6 +219,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
                         case FLOAT: m.setField(child , Float.valueOf((String)newValue)); break;
                     }
                     p.setSummary((String)newValue);
+                    activity.configBuilder.setField(field, m.build());
                     return true;
                 });
                 preference.setOnPreferenceClickListener(p -> {

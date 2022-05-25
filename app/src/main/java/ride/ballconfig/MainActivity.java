@@ -16,6 +16,8 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.TextFormat;
 
@@ -40,13 +42,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public final int PICK_DEVICE_CODE = 20;
 
     private boolean have_config = false;
+    Descriptors.Descriptor configDescriptor;
+    byte[] compressedConfigDescriptor;
+    DynamicMessage.Builder cfg;
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (cfg == null) {
+            showError("No descriptor");
+            return;
+        }
+
         if (requestCode == GET_SETTINGS_CODE && resultCode == RESULT_OK) {
             byte[] config = data.getByteArrayExtra("config");
             try {
-                cfg.mergeFrom(config);
+                showToast(Integer.toString(config.length), Toast.LENGTH_SHORT);
+                cfg.clear().mergeFrom(config);
                 //        communicator.sendConfig(cfg.build());
             } catch (InvalidProtocolBufferException e) {
                 e.printStackTrace();
@@ -72,10 +84,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (requestCode == READ_FILE_REQUEST_CODE && resultCode == RESULT_OK) {
             try {
                 InputStream in = getContentResolver().openInputStream(data.getData());
-                //  Protocol.Config.Builder builder =  Protocol.Config.newBuilder();
                 InputStreamReader reader = new InputStreamReader(in);
-                cfg.clear();
-                SettingsActivity.setDefaults(cfg);
+                DescriptorUtils.setFieldsToTheirDefaultValues(cfg);
                 TextFormat.getParser().merge(reader, cfg);
                 reader.close();
                 in.close();
@@ -98,16 +108,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        cfg = Protocol.Config.newBuilder();
-        SettingsActivity.setDefaults(cfg);
-
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 try {
                     switch (intent.getAction()) {
                         case BtService.Constants.MSG_CONFIG:
-                            OnConfig(Protocol.Config.parseFrom(intent.getByteArrayExtra(BtService.Constants.DATA)));
+                            OnConfig(intent.getByteArrayExtra(BtService.Constants.DATA));
                             return;
 
                         case BtService.Constants.MSG_STATS:
@@ -117,6 +124,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         case BtService.Constants.MSG_GENERIC:
                             OnGeneric(Protocol.ReplyId.forNumber(intent.getIntExtra(BtService.Constants.DATA, 0)));
                             return;
+
+                        case BtService.Constants.MSG_CONFIG_DESCRIPTOR:
+                            OnConfigDescriptor(intent.getByteArrayExtra(BtService.Constants.DATA));
+                            return;
+
                         default:
                             break;
                     }
@@ -141,6 +153,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 new IntentFilter(
                         BtService.Constants.MSG_GENERIC));
 
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+                receiver,
+                new IntentFilter(
+                        BtService.Constants.MSG_CONFIG_DESCRIPTOR));
+
         Intent intent = new Intent(this, BtService.class);
         bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
 
@@ -153,8 +170,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 try {
                     if (btService != null) {
                         if (!have_config) {
-                            if (val++ % 2 > 0)
-                               btService.sendMsg(Protocol.RequestId.READ_CONFIG);
+                            if (configDescriptor == null) {
+                                if (val++ % 4 == 0)
+                                    btService.sendMsg(Protocol.RequestId.GET_CONFIG_DESCRIPTOR);
+                            }
+                            else {
+                                if (val++ % 2 == 0)
+                                    btService.sendMsg(Protocol.RequestId.READ_CONFIG);
+                            }
                         }
                         else {
                             btService.sendMsg(Protocol.RequestId.GET_STATS);
@@ -167,8 +190,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         };
     }
-
-    Protocol.Config.Builder cfg;
 
     boolean connected = false;
 
@@ -187,6 +208,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 try {
                     String address = getAddress();
                     btService.connectToDevice(address);
+                    btService.sendMsg(Protocol.RequestId.GET_CONFIG_DESCRIPTOR);
                     btService.sendMsg(Protocol.RequestId.READ_CONFIG);
                     connected = true;
                 } catch (IOException e) {
@@ -238,10 +260,62 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         showToast(reply.toString(), Toast.LENGTH_SHORT);
     }
 
-    private void OnConfig(Protocol.Config deviceConfig) {
+    private void OnConfig(byte[] deviceConfig) {
+        if (configDescriptor == null) {
+            showToast("Error, got config before descriptor", Toast.LENGTH_SHORT);
+            return;
+        }
+
+        if (cfg == null) {
+            cfg = DynamicMessage.newBuilder(configDescriptor);
+        }
+
         showToast("Got config", Toast.LENGTH_SHORT);
         have_config = true;
-        cfg.clear().mergeFrom(deviceConfig);
+
+        try {
+            cfg.clear().mergeFrom(deviceConfig);
+        }
+        catch (Exception ex) {
+            showToast("Bad config: " + ex.toString(), Toast.LENGTH_LONG);
+        }
+    }
+
+    private void OnConfigDescriptor(byte[] compressedDescriptor) {
+        showToast("Got descriptor. Len: " + compressedDescriptor.length, Toast.LENGTH_SHORT);
+
+        if (configDescriptor != null) {
+            showToast("Already have config descriptor." + compressedDescriptor.length, Toast.LENGTH_SHORT);
+            return;
+        }
+
+        try {
+            configDescriptor = DescriptorUtils.parseConfigDescriptor(compressedDescriptor);
+            this.compressedConfigDescriptor = compressedDescriptor;
+            cfg = DynamicMessage.newBuilder(configDescriptor);
+        }
+        catch (Exception ex) {
+            showToast("Failed to parse config descriptor: " + ex.toString(), Toast.LENGTH_LONG);
+        }
+    }
+
+    float getErpmToDistConst() {
+        if (configDescriptor == null || cfg == null)
+        {
+            return 0;
+        }
+
+        Descriptors.FieldDescriptor misc_field = configDescriptor.findFieldByName("misc");
+        if (misc_field == null) {
+            return 0;
+        }
+
+        DynamicMessage miscMsg = (DynamicMessage) cfg.getField(misc_field);
+        Descriptors.FieldDescriptor erpm_filed = miscMsg.getDescriptorForType().findFieldByName("erpm_to_dist_const");
+        if (erpm_filed == null) {
+            return 0;
+        }
+        return (float) miscMsg.getField(erpm_filed);
     }
 
     private void OnStats(Protocol.Stats stats) {
@@ -257,12 +331,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         TextView speed = findViewById(R.id.tvSpeed);
 
-        float speed_m_sec = Math.abs(stats.getSpeed()) * cfg.getMisc().getErpmToDistConst() / 60;
+
+
+        float speed_m_sec = Math.abs(stats.getSpeed()) * getErpmToDistConst() / 60;
         speed.setText("Speed: " + formatter.format( speed_m_sec * 3.6) + " km/h");
 
         TextView distance = findViewById(R.id.tvDist);
         distance.setText("Distance traveled: " +
-                formatter.format(stats.getDistanceTraveled() * cfg.getMisc().getErpmToDistConst() /  3 / 2 / 1000) + " km");
+                formatter.format(stats.getDistanceTraveled() * getErpmToDistConst() /  3 / 2 / 1000) + " km");
 
     }
 
@@ -302,7 +378,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             switch (v.getId()) {
                 case R.id.changeSettings:
                     startActivityForResult(
-                            new Intent(this, SettingsActivity.class).putExtra("config", cfg.build().toByteArray()), GET_SETTINGS_CODE);
+                            new Intent(this, SettingsActivity.class).putExtra("config", cfg.build().toByteArray()).putExtra("configDescriptor", compressedConfigDescriptor) , GET_SETTINGS_CODE);
                     break;
 
                 case R.id.readFromFile:
@@ -334,7 +410,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     break;
 
                 case R.id.saveToBoard:
-                    btService.sendConfig(cfg.build());
+                    btService.sendConfig(cfg.build().toByteArray());
                     break;
 
                 case R.id.passthough:
