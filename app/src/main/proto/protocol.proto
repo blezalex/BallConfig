@@ -48,7 +48,7 @@ message Stats {
   optional float motor_duty = 11;
   optional float esc_temp = 12;
   optional float motor_temp = 13;
-  required float speed2 = 14;
+  optional float speed2 = 14;
 
   optional float gyro0 = 15;
   optional float gyro1 = 16;
