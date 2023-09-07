@@ -24,10 +24,13 @@ import android.view.MenuItem;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
+import com.google.protobuf.MessageOrBuilder;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.List;
+
+import static com.google.protobuf.Descriptors.FieldDescriptor.JavaType;
 
 public class SettingsActivity extends AppCompatPreferenceActivity {
     /**
@@ -185,6 +188,16 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
         }
     }
 
+    static String formatValue(MessageOrBuilder m, Descriptors.FieldDescriptor child) {
+        NumberFormat formatter = new DecimalFormat();
+        formatter.setMaximumFractionDigits(6);
+        Object field = m.getField(child);
+        if (child.getJavaType() == JavaType.BOOLEAN) {
+            return field.toString();
+        }
+        return formatter.format(field);
+    }
+
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public static class ProtoPreferenceFragment extends PreferenceFragment {
         @Override
@@ -203,27 +216,30 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
 
             final Message.Builder m = ((DynamicMessage)activity.configBuilder.getField(field)).toBuilder();
 
-            NumberFormat formatter = new DecimalFormat();
-            formatter.setMaximumFractionDigits(6);
             for (final Descriptors.FieldDescriptor child : type.getFields()) {
                 EditTextPreference preference = new EditTextPreference(screen.getContext());
                 preference.setTitle(child.getName());
-                preference.setSummary(formatter.format(m.getField(child)));
+                preference.setSummary( formatValue(m, child));
                 preference.setDialogTitle("Enter " + child.getName() + " value");
-                preference.getEditText().setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED);
+
+                Descriptors.FieldDescriptor.JavaType fieldType = child.getJavaType();
+                if (fieldType != JavaType.BOOLEAN) {
+                    preference.getEditText().setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED);
+                }
                 preference.setOnPreferenceChangeListener((p, newValue) -> {
-                    switch (child.getJavaType()) {
+                    switch (fieldType) {
                         case DOUBLE: m.setField(child , Double.valueOf((String)newValue)); break;
                         case INT: m.setField(child , Integer.valueOf((String)newValue)); break;
                         case LONG: m.setField(child , Long.valueOf((String)newValue)); break;
                         case FLOAT: m.setField(child , Float.valueOf((String)newValue)); break;
+                        case BOOLEAN: m.setField(child , Boolean.valueOf((String)newValue)); break;
                     }
                     p.setSummary((String)newValue);
                     activity.configBuilder.setField(field, m.build());
                     return true;
                 });
                 preference.setOnPreferenceClickListener(p -> {
-                    String value = formatter.format(m.getField(child));
+                    String value = formatValue(m , child);
                     ((EditTextPreference)p).getEditText().setText(value);
                     return true;
                 });
