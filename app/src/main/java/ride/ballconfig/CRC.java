@@ -33,17 +33,17 @@ public class CRC {
 
     public static int compute(byte[] data, int offset, int count) {
         int crc = 0xffffffff;
-        int cnt = ((int)Math.ceil((offset + count) / 4.0)) * 4;
-        for (int i = offset; i < cnt; i++) {
+        int cnt = ((int)Math.ceil((count) / 4.0)) * 4;
+        for (int i = 0; i < cnt; i++) {
             int aligned = i / 4;
             int pos = aligned * 4 + 3 - (i - aligned * 4);
 
             byte b;
-            if (pos >= (offset + count)) {
+            if (pos >= count) {
                 b = 0;
             }
             else {
-                b = data[pos];
+                b = data[pos + offset];
             }
 
             crc = (crc << 8) ^ CRC32_TABLE[((crc >> 24) ^ (b & 0xff)) & 0xff];

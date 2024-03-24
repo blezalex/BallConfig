@@ -9,6 +9,10 @@ import java.util.zip.Inflater;
 
 public class DescriptorUtils {
     public static Descriptors.Descriptor parseConfigDescriptor(byte[] compressedDescriptor) throws Exception {
+        return parseDescriptor(compressedDescriptor, "Config");
+    }
+
+    public static Descriptors.Descriptor parseDescriptor(byte[] compressedDescriptor, String type_name) throws Exception {
         byte[] tmpBuffer = new byte[1024*10];
         Inflater decompresser = new Inflater();
         decompresser.setInput(compressedDescriptor, 0, compressedDescriptor.length);
@@ -21,7 +25,7 @@ public class DescriptorUtils {
         if (descriptorSet.getFileCount() != 1) throw new Exception("Bad descriptor set, more than one file in input");
         DescriptorProtos.FileDescriptorProto file = descriptorSet.getFile(0);
         Descriptors.FileDescriptor fileDescriptor = Descriptors.FileDescriptor.buildFrom(file, new Descriptors.FileDescriptor[0]);
-        return fileDescriptor.findMessageTypeByName("Config");
+        return fileDescriptor.findMessageTypeByName(type_name);
     }
 
     public static void setFieldsToTheirDefaultValues(DynamicMessage.Builder bldr) {

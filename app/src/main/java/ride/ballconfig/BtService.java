@@ -6,10 +6,8 @@ import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
-import android.os.Message;
-import android.support.v4.content.LocalBroadcastManager;
-
-import com.google.protobuf.DynamicMessage;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import proto.Protocol;
 
 import java.io.IOException;
 import java.util.Set;
@@ -24,6 +22,7 @@ public class BtService extends Service {
         public static final String MSG_STATS = "ride.ballconfig.msg_stats";
         public static final String MSG_DEBUG_INFO = "ride.ballconfig.msg_debug_info";
         public static final String MSG_CONFIG_DESCRIPTOR = "ride.ballconfig.msg_config_descriptor";
+        public static final String MSG_CONNECTION_STATE_CHANGE = "ride.ballconfig.msg_connection_state_change";
 
         public static final String DATA = "ride.ballconfig.msg_content_data";
     }
@@ -106,6 +105,14 @@ public class BtService extends Service {
                 Intent localIntent =
                         new Intent(Constants.MSG_CONFIG_DESCRIPTOR)
                                 .putExtra(Constants.DATA, data);
+                LocalBroadcastManager.getInstance(BtService.this).sendBroadcast(localIntent);
+            }
+
+            @Override
+            public void OnConnectionStateChange(SerialComm.ConnectionState new_state) {
+                Intent localIntent =
+                        new Intent(Constants.MSG_CONNECTION_STATE_CHANGE)
+                                .putExtra(Constants.DATA, new_state.ordinal());
                 LocalBroadcastManager.getInstance(BtService.this).sendBroadcast(localIntent);
             }
         });

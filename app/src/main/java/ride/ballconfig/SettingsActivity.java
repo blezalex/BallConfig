@@ -13,10 +13,9 @@ import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
-import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
 import android.preference.RingtonePreference;
-import android.support.v7.app.ActionBar;
+import androidx.appcompat.app.ActionBar;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.view.MenuItem;
@@ -191,6 +190,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
     static String formatValue(MessageOrBuilder m, Descriptors.FieldDescriptor child) {
         NumberFormat formatter = new DecimalFormat();
         formatter.setMaximumFractionDigits(6);
+        formatter.setGroupingUsed(false);
         Object field = m.getField(child);
         if (child.getJavaType() == JavaType.BOOLEAN) {
             return field.toString();

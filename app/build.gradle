@@ -1,15 +1,20 @@
+
+
+plugins {
+    id "com.google.protobuf" version "0.9.4"
+}
+
 apply plugin: 'com.android.application'
-apply plugin: 'com.google.protobuf'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 30
     defaultConfig {
         applicationId "ride.ballconfig"
-        minSdkVersion 19
-        targetSdkVersion 27
+        minSdkVersion 29
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         vectorDrawables.useSupportLibrary = true
     }
     buildTypes {
@@ -22,48 +27,54 @@ android {
         sourceCompatibility = '1.8'
         targetCompatibility = '1.8'
     }
+    namespace 'ride.ballconfig'
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.android.support:appcompat-v7:28.+'
-    implementation 'com.android.support:design:28.+'
-    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
-    implementation 'com.android.support:support-vector-drawable:28.+'
-    implementation 'com.google.protobuf:protobuf-java:3.6.1'
-    implementation 'com.android.support:support-v4:28.+'
+    implementation 'androidx.appcompat:appcompat:1.0.0'
+    implementation 'com.google.android.material:material:1.0.0'
+    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+    implementation 'androidx.vectordrawable:vectordrawable:1.0.0'
+    implementation 'com.google.protobuf:protobuf-java:3.20.1'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     //implementation project(':GraphView')
     implementation 'com.jjoe64:graphview:4.2.2'
     testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.0'
 }
 
 protobuf {
     protoc {
         // You still need protoc like in the non-Android case
-        artifact = 'com.google.protobuf:protoc:3.6.1'
+        artifact = 'com.google.protobuf:protoc:3.20.1'
     }
     plugins {
-//        javalite {
-//            // The codegen for lite comes as a separate artifact
-//            artifact = 'com.google.protobuf:protoc-gen-javalite:3.0.0'
-//        }
+        java {
+            artifact = 'com.google.protobuf:protoc-gen-java:3.20.1'
+        }
     }
     generateProtoTasks {
-        all().each { task ->
+        all().configureEach { task ->
             task.builtins {
-                // In most cases you don't need the full Java output
-                // if you use the lite output.
-                //  remove java
-            }
-            task.plugins {
-                java {}
+                java {
+                }
             }
         }
     }
 }
-
-sourceSets {
-    main.java.srcDirs += "${protobuf.generatedFilesBaseDir}/main/java"
+android {
+    sourceSets {
+        main {
+            proto {
+                srcDir 'src/main/proto'
+            }
+            java {
+                // include self written and generated code
+                srcDirs 'src/main/java', 'generated-sources/main/java'
+            }
+        }
+        // remove the test configuration - at least in your example you don't have a special test proto file
+    }
 }

@@ -10,8 +10,8 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
-import android.support.v4.content.LocalBroadcastManager;
-import android.support.v7.app.AppCompatActivity;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.appcompat.app.AppCompatActivity;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private boolean have_config = false;
     Descriptors.Descriptor configDescriptor;
+    Descriptors.Descriptor statsDescriptor;
     byte[] compressedConfigDescriptor;
     DynamicMessage.Builder cfg;
 
@@ -129,6 +130,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             OnConfigDescriptor(intent.getByteArrayExtra(BtService.Constants.DATA));
                             return;
 
+                        case BtService.Constants.MSG_CONNECTION_STATE_CHANGE:
+                            OnConnectionStateChanged(SerialComm.ConnectionState.values()[(intent.getIntExtra(BtService.Constants.DATA, 0))]);
+
                         default:
                             break;
                     }
@@ -158,6 +162,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 new IntentFilter(
                         BtService.Constants.MSG_CONFIG_DESCRIPTOR));
 
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+                receiver,
+                new IntentFilter(
+                        BtService.Constants.MSG_CONNECTION_STATE_CHANGE));
+
         Intent intent = new Intent(this, BtService.class);
         bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
 
@@ -170,14 +179,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 try {
                     if (btService != null) {
                         if (!have_config) {
-                            if (configDescriptor == null) {
-                                if (val++ % 4 == 0)
-                                    btService.sendMsg(Protocol.RequestId.GET_CONFIG_DESCRIPTOR);
+                            if ((val++ % 4 == 0)) {
+                                btService.sendMsg(configDescriptor == null ?  Protocol.RequestId.GET_CONFIG_DESCRIPTOR : Protocol.RequestId.READ_CONFIG);
                             }
-                            else {
-                                if (val++ % 2 == 0)
-                                    btService.sendMsg(Protocol.RequestId.READ_CONFIG);
-                            }
+
                         }
                         else {
                             btService.sendMsg(Protocol.RequestId.GET_STATS);
@@ -186,7 +191,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 } catch (IOException e) {
                     showError(e.toString());
                 }
-                timerHandler.postDelayed(mTimer1, 500);
+                timerHandler.postDelayed(mTimer1, 250);
             }
         };
     }
@@ -209,7 +214,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     String address = getAddress();
                     btService.connectToDevice(address);
                     btService.sendMsg(Protocol.RequestId.GET_CONFIG_DESCRIPTOR);
-                    btService.sendMsg(Protocol.RequestId.READ_CONFIG);
+                    //btService.sendMsg(Protocol.RequestId.READ_CONFIG);
                     connected = true;
                 } catch (IOException e) {
                     showError("failed to get stream: " + e.getMessage() + ".");
@@ -299,6 +304,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    private void OnConnectionStateChanged(SerialComm.ConnectionState new_state) {
+        TextView statsControl = findViewById(R.id.stats);
+        statsControl.setText(new_state.toString());
+    }
+
+
     float getErpmToDistConst() {
         if (configDescriptor == null || cfg == null)
         {
@@ -324,6 +335,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         NumberFormat formatter = new DecimalFormat();
         formatter.setMaximumFractionDigits(2);
+        formatter.setGroupingUsed(false);
 
         TextView battV = findViewById(R.id.tvBatteryV);
         battV.setText("Battery: " +

@@ -17,6 +17,15 @@ public class SerialComm {
 
     static final int MAX_MSG_LEN = 2048;
 
+    enum ConnectionState {
+        WaitingForBtDevice,
+        WaitingForResponse,
+        WaitingToSync,
+        GotDescriptor,
+        GotConfig,
+        Disconnected,
+    }
+
     public interface ProtoHandler {
         void OnGeneric(Protocol.ReplyId reply);
 
@@ -27,6 +36,8 @@ public class SerialComm {
         void OnDebug(byte[] data);
 
         void OnConfigDescriptor(byte[] data);
+
+        void OnConnectionStateChange(ConnectionState new_state);
     }
 
     public SerialComm(ProtoHandler handler) {
